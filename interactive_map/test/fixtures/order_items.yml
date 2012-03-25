@@ -1,0 +1,17 @@
+# Read about fixtures at http://ar.rubyonrails.org/classes/Fixtures.html
+
+one:
+  order_id: 1
+  title: MyString
+  price_cents: 1
+  image_url: MyString
+  seller_zip_code: MyString
+  seller_country: MyString
+
+two:
+  order_id: 1
+  title: MyString
+  price_cents: 1
+  image_url: MyString
+  seller_zip_code: MyString
+  seller_country: MyString
