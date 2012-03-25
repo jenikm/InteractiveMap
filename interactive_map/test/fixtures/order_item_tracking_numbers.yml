@@ -1,9 +1,0 @@
-# Read about fixtures at http://ar.rubyonrails.org/classes/Fixtures.html
-
-one:
-  tracking_number: MyString
-  carrier: MyString
-
-two:
-  tracking_number: MyString
-  carrier: MyString
