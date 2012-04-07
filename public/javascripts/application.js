@@ -92,7 +92,8 @@ var ItemList = Class.create({
   }
 })
 var map;
-var geocoder
+var geocoder;
+var br_main_office;
 function initialize_tracking_map(){
 
   var stylers = [
@@ -139,35 +140,44 @@ function initialize_tracking_map(){
     ]
   }
   ];
+
+
+  //BAYRU OFFICE COORDINATES
+  br_main_office = new google.maps.LatLng(42.019078, -87.714531);
   var tracking_style_map = new google.maps.StyledMapType(stylers,
       {name: "BayRu Style Map"});
   var myOptions = {
-          center: new google.maps.LatLng(42.0190775, -87.7145308),
+          center: br_main_office,
           zoom: 4,
           mapTypeControlOptions: {
             mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'interactive_styled_map']
           }
         };
-        map = new google.maps.Map($("map_canvas"),
-            myOptions);
-    geocoder = new google.maps.Geocoder();
-   map.mapTypes.set('interactive_styled_map', tracking_style_map);
-   map.setMapTypeId('interactive_styled_map');
+  geocoder = new google.maps.Geocoder();
+  map = new google.maps.Map($("map_canvas"), myOptions);
+  map.mapTypes.set('interactive_styled_map', tracking_style_map);
+  map.setMapTypeId('interactive_styled_map');
 }
 
 function add_to_map(elem){
+  new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: geocode, method: "get" })
   function geocode(response){
     var item_struct = response.responseJSON;
-    var address;
+    var address_structs = [];
     if(!item_struct.seller_country.empty()){
-      address = item_struct.seller_country;
+      var address_struct = {address: item_struct.seller_country, of: "SELLER"};
       if(item_struct.seller_country == "US"){
         if(item_struct.seller_zip_code.search(/^\d+$/) != -1){
-          address = item_struct.seller_zip_code + ", " + address;
+          address_struct.address = item_struct.seller_zip_code + ", " + address_struct.address;
         }
       } 
+      address_structs.push(address_struct);
     }
-    geocoder.geocode( { 'address': address}, function(results, status) {
+    
+    address_structs.each(add_icons);
+  }
+  function add_icons(address_struct){
+    geocoder.geocode( { 'address': address_struct.address}, function(results, status) {
       if (status == google.maps.GeocoderStatus.OK) {
         //map.setCenter(results[0].geometry.location);
         var marker = new google.maps.Marker({
@@ -178,16 +188,5 @@ function add_to_map(elem){
         alert("Geocode was not successful for the following reason: " + status);
       }
     });
-
-
-
-
-    //alert(item_struct.responseJSON.title);
-    //alert(GOOGLE_API_KEY);
   }
-  new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: geocode, method: "get" })
-  //GET_ITEM
-  //GEOCODE
-  //ADD_TO_MAP
-  //alert(elem.id);
 }
