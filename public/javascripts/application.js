@@ -115,7 +115,7 @@ function seller_shipped_item(item_struct){
 }
 
 function arrived_from_seller(item_struct){
-
+  return item_struct.status > 2
 }
 
 function initialize_tracking_map(){
@@ -168,6 +168,7 @@ function initialize_tracking_map(){
 
   //BAYRU OFFICE COORDINATES
   br_main_office_location = new google.maps.LatLng(42.019078, -87.714531);
+  //br_main_office_location = new google.maps.LatLng(32,-101);
   var tracking_style_map = new google.maps.StyledMapType(stylers,
       {name: "BayRu Style Map"});
   var myOptions = {
@@ -191,17 +192,17 @@ function midway_location(l1, l2){
 
 
 function add_to_map(elem){
-  new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: geocode, method: "get" })
-  
-
+  new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: collect_geocodes_and_show, method: "get" })
   var address_structs = [];
-  function geocode(response){
-    function resolve_geocode(address_struct, _callback){
+  function collect_geocodes_and_show(response){
+    var item_struct = response.responseJSON;
+
+    function resolve_geocode(_callback){
       geocoder.geocode( { 'address': address_struct.address}, function(results, status) {
       if(status == google.maps.GeocoderStatus.OK) {
         var loc = results[0].geometry.location;
         //To spread out items that are dense
-        var offset = (address_struct.title.hashCode() % 10) * 0.1;
+        var offset = (item_struct.title.hashCode() % 10) * 0.1;
         address_struct.location = new google.maps.LatLng(loc.lat() + offset, loc.lng());
         //address_struct.location = results[0].geometry.location;
   
@@ -211,15 +212,18 @@ function add_to_map(elem){
       }
       })
     }
-    function calculate_midway_to_office(){
-      address_structs.push({location: midway_location(address_structs.last().location, br_main_office_location) });
+
+    function add_midway_office_or_further(){
+      address_structs.push( {location: midway_location(address_structs.last().location, br_main_office_location), type: "MIDWAY_SELLER" });
+      if(arrived_from_seller(item_struct)){
+       address_structs.push( {location: br_main_office_location, type: "BR_MAIN_OFFICE"} );
+      }
       add_icons();
     }
 
-    var item_struct = response.responseJSON;
     //EXTRACT SELLER ADDRESS
     if(!item_struct.seller_country.empty()){
-      var address_struct = {address: item_struct.seller_country, of: "SELLER", location: null, title: item_struct.title};
+      var address_struct = {address: item_struct.seller_country, type: "SELLER", location: null};
       if(item_struct.seller_country == "US"){
         if(item_struct.seller_zip_code.search(/^\d+$/) != -1){
           address_struct.address = item_struct.seller_zip_code + ", " + address_struct.address;
@@ -227,29 +231,42 @@ function add_to_map(elem){
       } 
       address_structs.push(address_struct);
       //RESOLVE SELLER ADDRESS, and figure out what to do next
-      resolve_geocode(address_struct, seller_shipped_item(item_struct) ? calculate_midway_to_office : add_icons);
+      resolve_geocode(seller_shipped_item(item_struct) ? add_midway_office_or_further : add_icons);
     }
-  }
-  function add_icons(){
-    address_structs.each(function(address_struct){
+    function add_icons(){
+    address_structs.each(function(address_struct, i){
       var marker = new google.maps.Marker({
             map: map,
             position: address_struct.location
         })
+        if(i){
+          //LAT,LNG-> INCREASE /\ increase
+          l1 =  address_structs[i-1].location;
+          l2 = address_structs[i].location;
+          var angle = Math.atan((l2.lng() - l1.lng()) / (l2.lat() - l1.lat()));
+          angle *= 180 / Math.PI;
+          angle = angle < 0 ? (360 + angle): angle;
+          if(l1.lat() > l2.lat())
+            angle += 180;
+          angle %= 360;
+          var a4 = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 2);
+        }
       }
     )
-  var flightPlanCoordinates = address_structs.map(function(address_struct){
-    return address_struct.location;
-  })
-  var title = address_structs.first().title;
-  //alert(hash_color(title).toString(16));
-  var flightPath = new google.maps.Polyline({
-    path: flightPlanCoordinates,
-    strokeColor: hash_color(title).toString(16),
-    strokeOpacity: 1.0,
-    strokeWeight: 2
-  });
+    var path_points = address_structs.map(function(address_struct){
+      return address_struct.location;
+    })
+    var path = new google.maps.Polyline({
+      path: path_points,
+      strokeColor: item_path_color(item_struct),
+      strokeOpacity: 1.0,
+      strokeWeight: 2
+    });
 
-  flightPath.setMap(map);
+    path.setMap(map);
+    }
+  }
+  function item_path_color(item_struct){
+    return hash_color(item_struct.title).toString(16);
   }
 }
