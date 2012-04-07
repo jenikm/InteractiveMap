@@ -5,6 +5,21 @@ document.observe("dom:loaded", function(){
   initialize_tracking_map();
 });
 
+String.prototype.hashCode = function(){
+  var hash = 0;
+  if (this.length == 0) return hash;
+  for (i = 0; i < this.length; i++) {
+    char = this.charCodeAt(i);
+    hash = ((hash<<5)-hash)+char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash;
+}
+
+function hash_color(title){
+  return (Math.abs(title.hashCode() % (1<<24)))
+}
+
 function setup_multiple_selection(options){
     var select_multiple_two = new Control.SelectMultiple(options.value_id,options.options_id,{  
         checkboxSelector: 'table tr td input[type=checkbox]',  
@@ -93,7 +108,16 @@ var ItemList = Class.create({
 })
 var map;
 var geocoder;
-var br_main_office;
+var br_main_office_location;
+
+function seller_shipped_item(item_struct){
+  return item_struct.status > 1
+}
+
+function arrived_from_seller(item_struct){
+
+}
+
 function initialize_tracking_map(){
 
   var stylers = [
@@ -143,11 +167,11 @@ function initialize_tracking_map(){
 
 
   //BAYRU OFFICE COORDINATES
-  br_main_office = new google.maps.LatLng(42.019078, -87.714531);
+  br_main_office_location = new google.maps.LatLng(42.019078, -87.714531);
   var tracking_style_map = new google.maps.StyledMapType(stylers,
       {name: "BayRu Style Map"});
   var myOptions = {
-          center: br_main_office,
+          center: br_main_office_location,
           zoom: 4,
           mapTypeControlOptions: {
             mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'interactive_styled_map']
@@ -159,34 +183,73 @@ function initialize_tracking_map(){
   map.setMapTypeId('interactive_styled_map');
 }
 
+//TODO must use the midpoint formula for geographical points
+function midway_location(l1, l2){
+  return new google.maps.LatLng( l1.lat() + (l2.lat() - l1.lat()) / 2, l1.lng() + (l2.lng() - l1.lng()) / 2);
+}
+
+
+
 function add_to_map(elem){
   new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: geocode, method: "get" })
+  
+
+  var address_structs = [];
   function geocode(response){
+    function resolve_geocode(address_struct, _callback){
+      geocoder.geocode( { 'address': address_struct.address}, function(results, status) {
+      if(status == google.maps.GeocoderStatus.OK) {
+        var loc = results[0].geometry.location;
+        //To spread out items that are dense
+        var offset = (address_struct.title.hashCode() % 10) * 0.1;
+        address_struct.location = new google.maps.LatLng(loc.lat() + offset, loc.lng());
+        //address_struct.location = results[0].geometry.location;
+  
+        _callback();
+      } else {
+        alert("Geocode was not successful for the following reason: " + status);
+      }
+      })
+    }
+    function calculate_midway_to_office(){
+      address_structs.push({location: midway_location(address_structs.last().location, br_main_office_location) });
+      add_icons();
+    }
+
     var item_struct = response.responseJSON;
-    var address_structs = [];
+    //EXTRACT SELLER ADDRESS
     if(!item_struct.seller_country.empty()){
-      var address_struct = {address: item_struct.seller_country, of: "SELLER"};
+      var address_struct = {address: item_struct.seller_country, of: "SELLER", location: null, title: item_struct.title};
       if(item_struct.seller_country == "US"){
         if(item_struct.seller_zip_code.search(/^\d+$/) != -1){
           address_struct.address = item_struct.seller_zip_code + ", " + address_struct.address;
         }
       } 
       address_structs.push(address_struct);
+      //RESOLVE SELLER ADDRESS, and figure out what to do next
+      resolve_geocode(address_struct, seller_shipped_item(item_struct) ? calculate_midway_to_office : add_icons);
     }
-    
-    address_structs.each(add_icons);
   }
-  function add_icons(address_struct){
-    geocoder.geocode( { 'address': address_struct.address}, function(results, status) {
-      if (status == google.maps.GeocoderStatus.OK) {
-        //map.setCenter(results[0].geometry.location);
-        var marker = new google.maps.Marker({
+  function add_icons(){
+    address_structs.each(function(address_struct){
+      var marker = new google.maps.Marker({
             map: map,
-            position: results[0].geometry.location
-        });
-      } else {
-        alert("Geocode was not successful for the following reason: " + status);
+            position: address_struct.location
+        })
       }
-    });
+    )
+  var flightPlanCoordinates = address_structs.map(function(address_struct){
+    return address_struct.location;
+  })
+  var title = address_structs.first().title;
+  //alert(hash_color(title).toString(16));
+  var flightPath = new google.maps.Polyline({
+    path: flightPlanCoordinates,
+    strokeColor: hash_color(title).toString(16),
+    strokeOpacity: 1.0,
+    strokeWeight: 2
+  });
+
+  flightPath.setMap(map);
   }
 }
