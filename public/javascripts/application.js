@@ -244,12 +244,12 @@ function add_to_map(elem){
           l1 =  address_structs[i-1].location;
           l2 = address_structs[i].location;
           var angle = Math.atan((l2.lng() - l1.lng()) / (l2.lat() - l1.lat()));
-          angle *= 180 / Math.PI;
+          angle *= (180 / Math.PI);
           angle = angle < 0 ? (360 + angle): angle;
           if(l1.lat() > l2.lat())
             angle += 180;
           angle %= 360;
-          var a4 = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 2);
+          var a4 = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 20);
         }
       }
     )
