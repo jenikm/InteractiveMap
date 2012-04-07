@@ -8,7 +8,10 @@
     = render :partial => "multiple_select", :locals => { :selections => Shipment.all.map{|s| {:name => "#{s.tracking_number} (#{s.carrier})", :id => s.order_item_ids.join(",")}}.select{|s| !s[:id].blank?}, :rel_name => "shipment" }
   %br
   %br
-  %iframe{:frameborder => "0", :height => "350", :marginheight => "0", :marginwidth => "0", :scrolling => "no", :src => "http://maps.google.com/maps?f=q&source=s_q&hl=en&geocode=&q=3415+W+Howard+St,+Skokie,+IL+60076&aq=0&oq=3415+howard+st,+&sll=41.891881,-87.624121&sspn=0.008881,0.021007&ie=UTF8&hq=&hnear=3415+W+Howard+St,+Skokie,+Illinois+60076&ll=42.018975,-87.714964&spn=0.008863,0.021007&t=m&z=2&iwloc=A&output=embed", :width => "1100", :id => "map"}
+  #map_canvas{:style => "height:350px;width:1100px;"}
+
+  -#%iframe{:frameborder => "0", :height => "350", :marginheight => "0", :marginwidth => "0", :scrolling => "no", :src => "http://maps.google.com/maps?f=q&source=s_q&hl=en&geocode=&q=3415+W+Howard+St,+Skokie,+IL+60076&aq=0&oq=3415+howard+st,+&sll=41.891881,-87.624121&sspn=0.008881,0.021007&ie=UTF8&hq=&hnear=3415+W+Howard+St,+Skokie,+Illinois+60076&ll=42.018975,-87.714964&spn=0.008863,0.021007&t=m&z=2&iwloc=A&output=embed", :width => "1100", :id => "map"}
+
 %fieldset
   %legend Items
   #items
@@ -17,7 +20,5 @@
   -OrderItem.all.each do |item|
     %div{"data-image_url" => item.image_url, "data-title" => truncate(item.title), "id" => "data_set_item_#{item.id}"}
 = javascript_dom_loaded("item_list = new ItemList('items', 'database')")
-= javascript_dom_loaded("Droppables.add('map', {onDrop: function(){alert('dropped')}});")
+-#= javascript_dom_loaded("Droppables.add('map_canvas', {onDrop: function(){alert('dropped')}});")
 
--#%small
-  %a{:href => "http://maps.google.com/maps?f=q&source=embed&hl=en&geocode=&q=3415+W+Howard+St,+Skokie,+IL+60076&aq=0&oq=3415+howard+st,+&sll=41.891881,-87.624121&sspn=0.008881,0.021007&ie=UTF8&hq=&hnear=3415+W+Howard+St,+Skokie,+Illinois+60076&ll=42.018975,-87.714964&spn=0.008863,0.021007&t=m&z=14&iwloc=A", :style => "color:#0000FF;text-align:left"} View Larger Map

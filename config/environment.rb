@@ -58,3 +58,4 @@ Rails::Initializer.run do |config|
   # Make Active Record use UTC-base instead of local time
   # config.active_record.default_timezone = :utc
 end
+GOOGLE_API_KEY = "AIzaSyBoRyXPHIJJXA6oRcYP5R-7tLYMCJ5-CvY".freeze

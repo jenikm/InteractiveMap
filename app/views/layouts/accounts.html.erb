@@ -9,6 +9,7 @@
   <%= javascript_include_tag :all %>
   <%= javascript_include_tag "livepipe/livepipe" %>
   <%= javascript_include_tag *Dir.foreach("#{RAILS_ROOT}/public/javascripts/livepipe").select{|x| x =~ /\.js$/}.map{|x| "livepipe/#{x}"}.sort %>
+  <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=<%= GOOGLE_API_KEY -%>&sensor=false"></script>
 
 </head>
 <body>

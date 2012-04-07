@@ -1,6 +1,9 @@
 // Place your application-specific JavaScript functions and classes here
 // This file is automatically included by javascript_include_tag :defaults
 
+document.observe("dom:loaded", function(){
+  initialize_tracking_map();
+});
 
 function setup_multiple_selection(options){
     var select_multiple_two = new Control.SelectMultiple(options.value_id,options.options_id,{  
@@ -88,3 +91,61 @@ var ItemList = Class.create({
   }
 })
 
+function initialize_tracking_map(){
+
+  var stylers = [
+  {
+    featureType: "administrative.country",
+    stylers: [
+      { hue: "#ffb300" },
+      { visibility: "on" }
+    ]
+  },{
+    featureType: "administrative.province",
+    stylers: [
+      { visibility: "on" }
+    ]
+  },{
+    featureType: "road",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "transit",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "poi",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "landscape",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    stylers: [
+      { hue: "#ff5e00" },
+      { saturation: 68 }
+    ]
+  },{
+    featureType: "administrative.locality",
+    stylers: [
+      { visibility: "off" }
+    ]
+  }
+  ];
+  var tracking_style_map = new google.maps.StyledMapType(stylers,
+      {name: "BayRu Style Map"});
+  var myOptions = {
+          center: new google.maps.LatLng(42.0190775, -87.7145308),
+          zoom: 6,
+          mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+        var map = new google.maps.Map(document.getElementById("map_canvas"),
+            myOptions);
+   map.mapTypes.set('interactive_styled_map', tracking_style_map);
+   map.setMapTypeId('interactive_styled_map');
+}
