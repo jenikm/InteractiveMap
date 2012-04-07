@@ -142,7 +142,9 @@ function initialize_tracking_map(){
   var myOptions = {
           center: new google.maps.LatLng(42.0190775, -87.7145308),
           zoom: 6,
-          mapTypeId: google.maps.MapTypeId.ROADMAP
+          mapTypeControlOptions: {
+            mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'interactive_styled_map']
+          }
         };
         var map = new google.maps.Map(document.getElementById("map_canvas"),
             myOptions);
