@@ -20,5 +20,5 @@
   -OrderItem.all.each do |item|
     %div{"data-image_url" => item.image_url, "data-title" => truncate(item.title), "id" => "data_set_item_#{item.id}"}
 = javascript_dom_loaded("item_list = new ItemList('items', 'database')")
--#= javascript_dom_loaded("Droppables.add('map_canvas', {onDrop: function(){alert('dropped')}});")
+= javascript_dom_loaded("Droppables.add('map_canvas', {onDrop: add_to_map});")
 

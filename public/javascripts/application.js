@@ -74,7 +74,8 @@ var ItemList = Class.create({
       var data_set_item = this.database.select("div#data_set_item_" + item_id).first();
       var item_picture = new Element("img", {'src': data_set_item.readAttribute("data-image_url"), 'onerror': "this.src = '/images/thumb_no_image.gif'"});
       var item_title = new Element("div").update(data_set_item.readAttribute("data-title"));
-      var item_elem = new Element("div", {'class': 'item', 'id': this.get_html_id(item_id), style: 'display:none;'});
+      var item_elem = new Element("div", 
+        {'class': 'item', 'id': this.get_html_id(item_id), style: 'display:none;', 'data-db_id': item_id});
       item_elem.appendChild(item_picture)
       item_elem.appendChild(item_title);
       this.outer_content.appendChild(item_elem);
@@ -90,7 +91,8 @@ var ItemList = Class.create({
     }
   }
 })
-
+var map;
+var geocoder
 function initialize_tracking_map(){
 
   var stylers = [
@@ -141,13 +143,51 @@ function initialize_tracking_map(){
       {name: "BayRu Style Map"});
   var myOptions = {
           center: new google.maps.LatLng(42.0190775, -87.7145308),
-          zoom: 6,
+          zoom: 4,
           mapTypeControlOptions: {
             mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'interactive_styled_map']
           }
         };
-        var map = new google.maps.Map(document.getElementById("map_canvas"),
+        map = new google.maps.Map($("map_canvas"),
             myOptions);
+    geocoder = new google.maps.Geocoder();
    map.mapTypes.set('interactive_styled_map', tracking_style_map);
    map.setMapTypeId('interactive_styled_map');
+}
+
+function add_to_map(elem){
+  function geocode(response){
+    var item_struct = response.responseJSON;
+    var address;
+    if(!item_struct.seller_country.empty()){
+      address = item_struct.seller_country;
+      if(item_struct.seller_country == "US"){
+        if(item_struct.seller_zip_code.search(/^\d+$/) != -1){
+          address = item_struct.seller_zip_code + ", " + address;
+        }
+      } 
+    }
+    geocoder.geocode( { 'address': address}, function(results, status) {
+      if (status == google.maps.GeocoderStatus.OK) {
+        //map.setCenter(results[0].geometry.location);
+        var marker = new google.maps.Marker({
+            map: map,
+            position: results[0].geometry.location
+        });
+      } else {
+        alert("Geocode was not successful for the following reason: " + status);
+      }
+    });
+
+
+
+
+    //alert(item_struct.responseJSON.title);
+    //alert(GOOGLE_API_KEY);
+  }
+  new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: geocode, method: "get" })
+  //GET_ITEM
+  //GEOCODE
+  //ADD_TO_MAP
+  //alert(elem.id);
 }
