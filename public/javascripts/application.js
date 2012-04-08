@@ -191,6 +191,8 @@ function midway_location(l1, l2){
 
 
 
+
+
 function add_to_map(elem){
   new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: collect_geocodes_and_show, method: "get" })
   var address_structs = [];
@@ -234,36 +236,49 @@ function add_to_map(elem){
       resolve_geocode(seller_shipped_item(item_struct) ? add_midway_office_or_further : add_icons);
     }
     function add_icons(){
-    address_structs.each(function(address_struct, i){
-      var marker = new google.maps.Marker({
+      address_structs.each(function(address_struct, i){
+        var icon_ops = {
             map: map,
-            position: address_struct.location
-        })
-        if(i){
-          //LAT,LNG-> INCREASE /\ increase
-          l1 =  address_structs[i-1].location;
-          l2 = address_structs[i].location;
-          var angle = Math.atan((l2.lng() - l1.lng()) / (l2.lat() - l1.lat()));
-          angle *= (180 / Math.PI);
-          angle = angle < 0 ? (360 + angle): angle;
-          if(l1.lat() > l2.lat())
-            angle += 180;
-          angle %= 360;
-          var a4 = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 20);
-        }
-      }
-    )
-    var path_points = address_structs.map(function(address_struct){
-      return address_struct.location;
-    })
-    var path = new google.maps.Polyline({
-      path: path_points,
-      strokeColor: item_path_color(item_struct),
-      strokeOpacity: 1.0,
-      strokeWeight: 2
-    });
+            position: address_struct.location,
+            animation: google.maps.Animation.DROP
+          }
 
-    path.setMap(map);
+        if(address_struct.type == "BR_MAIN_OFFICE"){ 
+          //icon_ops.
+        }
+        window.setTimeout(function(){
+          var marker = new google.maps.Marker(icon_ops);
+          }, 200 * i
+        )
+
+          //Only draw arrow for the second point in the path
+          if(i){
+            //LAT,LNG-> INCREASE /\ increase
+            l1 =  address_structs[i-1].location;
+            l2 = address_structs[i].location;
+            var angle = Math.atan((l2.lng() - l1.lng()) / (l2.lat() - l1.lat()));
+            angle *= (180 / Math.PI);
+            angle = angle < 0 ? (360 + angle): angle;
+
+            if(l1.lat() > l2.lat())
+              angle += 180;
+
+            angle %= 360;
+            var a4 = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 1);
+          }
+        }
+      )
+      var path_points = address_structs.map(function(address_struct){
+        return address_struct.location;
+      })
+      var path = new google.maps.Polyline({
+        path: path_points,
+        strokeColor: item_path_color(item_struct),
+        strokeOpacity: 1,
+        strokeWeight: 3
+      });
+
+      path.setMap(map);
     }
   }
   function item_path_color(item_struct){
