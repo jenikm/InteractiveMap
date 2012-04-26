@@ -73,7 +73,7 @@ ActiveRecord::Schema.define(:version => 12) do
     t.boolean  "geocode_failed",                                          :default => false, :null => false
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.integer  "shipment_tracking_log_id"
+    t.integer  "shipment_geo_location_id"
   end
 
   create_table "shipments", :force => true do |t|

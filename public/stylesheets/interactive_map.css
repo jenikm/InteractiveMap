@@ -76,3 +76,10 @@ table.select_multiple_table tr.selected {
 .select_multiple_checkbox input {  
     margin-right:15px;  
 }  
+
+table.info_window th{
+  text-align:right; 
+}
+table.info_window img{
+  padding:10px;
+}

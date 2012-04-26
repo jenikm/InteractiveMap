@@ -18,12 +18,10 @@ class ShipmentTrackingLog < ActiveRecord::Base
     if raw_address.include? "USORDA"
       options[:airport_code] = "ORD"
     end
-    puts options.inspect
 
     self.geo_location = GeoLocation.find_geolocation options
     self.save!
-
-
+    self
   end
 
 end

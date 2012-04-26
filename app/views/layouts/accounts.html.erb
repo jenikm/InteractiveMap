@@ -6,6 +6,8 @@
   <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
   <title>Accounts: <%= controller.action_name %></title>
   <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=<%= GOOGLE_API_KEY -%>&sensor=false"></script>
+  <%= stylesheet_link_tag 'styles' %>
+  <%= stylesheet_link_tag 'admin' %>
   <%= stylesheet_link_tag 'interactive_map' %>
   <%= javascript_include_tag "v3arrows.js" %>
   <%= javascript_tag "GOOGLE_API_KEY = '#{GOOGLE_API_KEY}';" -%>

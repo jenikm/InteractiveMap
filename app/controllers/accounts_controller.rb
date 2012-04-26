@@ -13,7 +13,8 @@ class AccountsController < ApplicationController
   def tracking_map
     #THIS WILL BE REPLACED WITH customer.orders.map(&:order_items).flatten with filters when integrated
     #@order_items = OrderItem.find(:all, :limit => 1, :conditions => "shipments.id IS NOT NULL", :order => "order_items.id desc", :include => :shipments)
-    @order_items = OrderItem.find(:all, :limit => 20, :conditions => "status in (1,2,3,4,5)", :order => "order_items.id desc", :include => :shipments)
+    @order_items = OrderItem.find(:all, :limit => 5, :conditions => "status in (1,2,3,4,5 )", :order => "order_items.id desc", :include => :shipments)
+    @order_items.delete_if{|oi| oi.status >3 and oi.shipments.empty?}
     
     ActiveRecord::Base.transaction do
       @order_items.each do | item |
@@ -27,12 +28,13 @@ class AccountsController < ApplicationController
       @shipments.each do |shipment|
         #TODO add check to prevent checking more often than 5 min interval
         shipment.build_shipment_tracking_logs
+        shipment.shipment_tracking_logs.each(&:save!)
         shipment.save!
       end
     end
 
     @shipments = @shipments.map do |shipment|
-      shipment.attributes.merge({:order_items => shipment.order_items.map(&:attributes), :shipment_tracking_logs => shipment.shipment_tracking_logs.map{|stl| stl.geo_location ? stl.attributes.merge(stl.geo_location.attributes) : stl.attributes}})
+      shipment.attributes.merge({:order_items => shipment.order_items.map(&:attributes), :shipment_tracking_logs => shipment.shipment_tracking_logs.sort_by{|x| x.id}.map{|stl| stl.geo_location ? stl.attributes.merge(stl.geo_location.attributes) : stl.attributes}})
     end
 
     @order_item_infos = @order_items.map{|oi| {:order_item => oi, :geo_locations => oi.get_geolocation_path}}

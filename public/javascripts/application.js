@@ -158,10 +158,12 @@ function initialize_tracking_map(){
   map.mapTypes.set('interactive_styled_map', tracking_style_map);
   map.setMapTypeId('interactive_styled_map');
   icon_ops.map = map;
+  
 }
 
 var icon_ops = { map: null, position: null, animation: google.maps.Animation.DROP, zIndex: 0 }
 var draw_office_icon = false;
+var max_info_window_width = 400;
 
 function show_icons(){
   //Draw item icons
@@ -186,22 +188,32 @@ function draw_shipments(shipment){
       stl.geo_location = new google.maps.LatLng(stl.lat, stl.lng);
       icon_ops.position = stl.geo_location
       var shipment_marker = new google.maps.Marker(Object.clone(icon_ops));  
-      var iwc = "<table><tr><th>Count</th><th>Title</th><th>Image</th><th>Status</th></tr>\n"
+      var iwc = "<table class='info_window list'><tr><th>Count</th><th>Title</th><th>Image</th><th>Status</th></tr>\n"
           shipment.order_items.each(function(oi, i){
-            iwc += "<tr><td>" + (i + 1) + "</td><td>" + oi.title + "</td><td><img onerror='this.src=\"/images/thumb_no_image.gif\"' src='" + oi.image_url + "' width=40</></td><td>" + status_names[oi.status] + "</td></tr>\n"
-          }).join("\n") + "</table>";
+            iwc += "<tr><td>" + (i + 1) + "</td><td>" + oi.title + "</td><td><img onerror='this.src=\"/images/thumb_no_image.gif\"' src='" + oi.image_url + "' width=60</></td><td>" + status_names[oi.status] + "</td></tr>\n"
+          }).join("\n");
+        iwc += "</table><br /><b>Tracking Number:</b> " + shipment.tracking_number;
         var info_window = new google.maps.InfoWindow({
-            content: iwc
+            content: iwc,
+            maxWidth: max_info_window_width
           });
 
           google.maps.event.addListener(shipment_marker, 'click', function() {
             info_window.open(map, shipment_marker);
+          });
+          google.maps.event.addListener(map, "click", function(){
+            info_window.close();
           });
 
       
       if(prev_geo_location && i > 0){
         draw_line(shipment.tracking_number, [prev_geo_location, stl.geo_location], 4);
       }
+      else{
+        draw_line(shipment.tracking_number, [br_main_office_location, stl.geo_location], 4);
+      }
+
+
       prev_geo_location = stl.geo_location;
     }
   });
@@ -212,30 +224,39 @@ function draw_office(){
   icon_ops.zIndex++;
   var color = br_office_infos.order_items.length > 0 ? "yellow" : "gray";
   icon_ops.icon = new google.maps.MarkerImage("/images/interactive_map_icons/br_office_" + color + ".png", null, null, null, new google.maps.Size(32,40) );
-  var office_marker = new google.maps.Marker(Object.clone(icon_ops));
+  var icon_ops_l = Object.clone(icon_ops);
+  icon_ops.zIndex = 100000;
+  var office_marker = new google.maps.Marker(icon_ops_l);
 
   var label = document.createElement("div");
   label.style.cssText = "border: 1px solid black;; padding: 5px;";
   label.innerHTML = br_office_infos.order_items.length;
+  label.title = "Number of items in the office currently";
 
   var label_options = { content: label,
                     maxWidth: 0,
                     pixelOffset: new google.maps.Size(-15, -70),
-                    zIndex: null,
+                    zIndex: 100000,
                     boxStyle: { opacity: 1, fontWeight: 'bold', backgroundColor: '#FFFFFF' }, 
                     closeBoxURL: "" };
   var ib = new InfoBox(label_options);
   ib.open(map, office_marker);
-  var iwc = "<table><tr><th>Count</th><th>Title</th><th>Image</th><th>Status</th></tr>\n"
+  var iwc = "<table class='info_window list'><tr><th>Count</th><th>Title</th><th>Image</th><th>Status</th></tr>\n"
     br_office_infos.order_items.each(function(oi, i){
-      iwc += "<tr><td>" + (i + 1) + "</td><td>" + oi.title + "</td><td><img onerror='this.src=\"/images/thumb_no_image.gif\"' src='" + oi.image_url + "' width=40</></td><td>" + status_names[oi.status] + "</td></tr>\n"
+      iwc += "<tr><td>" + (i + 1) + "</td><td>" + oi.title + "</td><td><img onerror='this.src=\"/images/thumb_no_image.gif\"' src='" + oi.image_url + "' width=60</></td><td>" + status_names[oi.status] + "</td></tr>\n"
     }).join("\n") + "</table>";
   var info_window = new google.maps.InfoWindow({
-      content: iwc
+      content: iwc,
+      maxWidth: max_info_window_width
+
     });
 
     google.maps.event.addListener(office_marker, 'click', function() {
       info_window.open(map,office_marker);
+    });
+
+    google.maps.event.addListener(map, "click", function(){
+      info_window.close();
     });
 }
 
@@ -246,7 +267,8 @@ function draw_line(color_seed, points, weight){
     path: points,
       strokeColor: hash_color(color_seed),
       strokeOpacity: 1,
-      strokeWeight: weight
+      strokeWeight: weight,
+      clickable: false
     });
   path.setMap(map);
 }
@@ -256,16 +278,16 @@ function add_item_icons_to_map(item_info){
   //Make midway a bit random 
   with(item_info){
     var info_window_content = 
-        "<table class='info_window'>" +
+        "<table class='info_window list'>" +
           "<tr>" +
-            "<th>Title</th><td>_TITLE_</td>" +
+            "<th>Title:</th><td>_TITLE_</td>" +
           "</tr>" +
           "<tr>" +
-            "<th>Last Status</th><td>_STATUS_</td>" +
+            "<th>Last Status:</th><td>_STATUS_</td>" +
           "</tr>" +
           "<tr>" +
-            "<td>" +
-              "<img onerror='this.src=\"/images/thumb_no_image.gif\"' src='_IMAGE_URL_' height=40/>" +
+            "<td colspan=2>" +
+              "<img onerror='this.src=\"/images/thumb_no_image.gif\"' src='_IMAGE_URL_' height=60/>" +
             "</td>" +
           "</tr>" +
       "</table>";
@@ -288,11 +310,20 @@ function add_item_icons_to_map(item_info){
       var seller_marker = new google.maps.Marker(l_icon_ops);
 
       var info_window = new google.maps.InfoWindow({
-        content: local_w_c
+        content: local_w_c,
+        maxWidth: max_info_window_width
+
       });
       google.maps.event.addListener(seller_marker, 'click', function() {
         info_window.open(map,seller_marker);
       });
+
+      google.maps.event.addListener(map, "click", function(){
+              info_window.close();
+      });
+
+
+
     }
     if(geo_locations.midway){
       //To spread out items that are dense
@@ -312,12 +343,17 @@ function add_item_icons_to_map(item_info){
 
 
       var info_window = new google.maps.InfoWindow({
-        content: local_w_c
+        content: local_w_c,
+        maxWidth: max_info_window_width
       });
 
       google.maps.event.addListener(midway_maker, 'click', function() {
         info_window.open(map,midway_maker);
       });
+      google.maps.event.addListener(map, "click", function(){
+            info_window.close();
+      });
+
       
     }
     if(order_item.status >= 3){

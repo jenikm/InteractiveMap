@@ -36,6 +36,6 @@ class GeoLocation < ActiveRecord::Base
         options.merge!(:unresolvable => true)
       end
     end
-    GeoLocation.create! options
+    GeoLocation.create options
   end
 end
