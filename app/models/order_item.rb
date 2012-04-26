@@ -53,7 +53,7 @@ class OrderItem < ActiveRecord::Base
       when 2: "Shipped by seller"
       when 3: "Arrived from seller"
       when 4: "Shipped to customer"
-      when 5: "Delivered to cuustomer"
+      when 5: "Delivered to customer"
       else "Error"
     end 
 

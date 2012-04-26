@@ -19,7 +19,9 @@ class GeoLocation < ActiveRecord::Base
     #Resolve to geocoordnates using various methods
     coordinates = nil
     if options[:country_name] == "Russia" and options[:postal_code]
-      result = open("http://enotpoiskun.ru/tools/mapbyindex/?query=#{options[:postal_code]}").read.match(/new GLatLng\((\d+\.\d+),(\d+\.\d+)\)/)
+      begin
+        result = open("http://enotpoiskun.ru/tools/mapbyindex/?query=#{options[:postal_code]}").read.match(/new GLatLng\((\d+\.\d+),(\d+\.\d+)\)/)
+      end
       if result and result[1] and result[2]
         coordinates = {"lat" => result[1], "lng" => result[2]}
         options.merge!(coordinates)

@@ -13,7 +13,14 @@ class AccountsController < ApplicationController
   def tracking_map
     #THIS WILL BE REPLACED WITH customer.orders.map(&:order_items).flatten with filters when integrated
     #@order_items = OrderItem.find(:all, :limit => 1, :conditions => "shipments.id IS NOT NULL", :order => "order_items.id desc", :include => :shipments)
-    @order_items = OrderItem.find(:all, :limit => 5, :conditions => "status in (1,2,3,4,5 )", :order => "order_items.id desc", :include => :shipments)
+    #raise params.inspect
+    #order_item_ids = request.query_string.split("&").select{|i| i.include?("order_item_ids")}.map{|i| i.match(/(\d+)/)[1]}
+    order_item_ids = request.raw_post.split('&').select{|i| i.include?("order_item_ids")}.map{|i| i.match(/(\d+)/)[1]}
+    if order_item_ids.empty?
+      @order_items = OrderItem.find(:all, :limit => 5, :conditions => "status in (1,2,3,4,5 )", :order => "order_items.id desc", :include => :shipments)
+    else
+      @order_items = OrderItem.find(:all, :limit => 5, :conditions => ["order_items.id in (?) ", order_item_ids ], :order => "order_items.id desc", :include => :shipments)
+    end
     @order_items.delete_if{|oi| oi.status >3 and oi.shipments.empty?}
     
     ActiveRecord::Base.transaction do

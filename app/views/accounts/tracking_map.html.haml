@@ -1,6 +1,14 @@
 %fieldset
   %h1 Interactive Map
   #map_canvas{:style => "height:350px;width:1100px;"}
+  %br
+  %br
+  %b
+    Select items you want to filter by
+  - form_tag({:action => :tracking_map}, :method => :post) do
+    = select_tag(:order_item_ids, options_for_select(OrderItem.all(:order => "id DESC", :limit => 1000).map{|i| ["#{i.status_name.upcase}: #{i.title}", i.id]}).split("\n").map{|i| @order_item_infos.map{|oi| oi[:order_item]}.map(&:id).include?(i.match(/value="(\d+)"/)[1].to_i) ? i.gsub("value", "selected=true value") : i}, :multiple => "multiple", :size => 100)
+    %br
+    = submit_tag "Filter"
 
 -javascript_tag do
   -# ARRAY OF ORDER ITEMS, FOR EACH ORDER ITEM HAVE GEOPATH
@@ -8,3 +16,5 @@
   = "var br_office_infos = #{@br_office_infos.to_json}"
   = "var shipments = #{@shipments.to_json(:include => [{:shipment_tracking_logs => :geo_location}, :order_items])};"
   = "var status_names = #{@status_names.to_json};"
+
+  

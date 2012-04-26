@@ -12,6 +12,7 @@ class ShipmentTrackingLog < ActiveRecord::Base
     if raw_address.downcase.include? "Russia" 
       options[:country_name] = "Russia"
     end
+    options[:city] = raw_address.split(" ").select{|c| c.length >=5}.first
     
     options[:country_name] ||= "Russia"
     
