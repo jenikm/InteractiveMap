@@ -30,7 +30,7 @@ class GeoLocation < ActiveRecord::Base
       puts address 
       rsp = ActiveSupport::JSON.decode(open("http://maps.googleapis.com/maps/api/geocode/json?address=#{URI.encode(address)},&sensor=false").read)
       coordinates = rsp["results"].andand[0].andand["geometry"].andand["location"]
-      if coordinates["lat"] and coordinates["lng"]
+      if coordinates and coordinates["lat"] and coordinates["lng"]
         options.merge!(coordinates)
       else
         options.merge!(:unresolvable => true)
