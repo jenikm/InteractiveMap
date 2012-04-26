@@ -1,0 +1,8 @@
+source "http://rubygems.org"
+gem "haml"
+gem "faker"
+gem "postgres"
+gem "rails", "2.0.2"
+gem "andand"
+gem "pg"
+gem "hpricot"
