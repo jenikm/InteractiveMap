@@ -18,6 +18,7 @@ class AccountsController < ApplicationController
     order_item_ids = request.raw_post.split('&').select{|i| i.include?("order_item_ids")}.map{|i| i.match(/(\d+)/)[1]}
     if order_item_ids.empty?
       @order_items = OrderItem.find(:all, :limit => 5, :conditions => "status in (1,2,3,4,5 )", :order => "order_items.id desc", :include => :shipments)
+      @order_items += OrderItem.all(:conditions => "status = 3", :limit => 10)
     else
       @order_items = OrderItem.find(:all, :limit => 5, :conditions => ["order_items.id in (?) ", order_item_ids ], :order => "order_items.id desc", :include => :shipments)
     end
