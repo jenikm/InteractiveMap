@@ -37,6 +37,7 @@ module GenerateData
       end
       order.save!
     end
+    GenerateData.assign_random_tracking_numbers
   end
 
   def self.assign_random_tracking_numbers
