@@ -17,8 +17,7 @@ GEM
     hpricot (0.8.6)
     i18n (0.6.0)
     pg (0.13.2)
-    postgres (0.8.1)
-      pg (~> 0)
+    postgres (0.7.9.2008.01.28)
     rails (2.0.2)
       actionmailer (= 2.0.2)
       actionpack (= 2.0.2)
@@ -37,5 +36,5 @@ DEPENDENCIES
   haml
   hpricot
   pg
-  postgres
+  postgres (= 0.7.9.2008.01.28)
   rails (= 2.0.2)

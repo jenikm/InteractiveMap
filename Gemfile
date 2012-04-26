@@ -1,7 +1,7 @@
 source "http://rubygems.org"
 gem "haml"
 gem "faker"
-gem "postgres"
+gem "postgres", "0.7.9.2008.01.28"
 gem "rails", "2.0.2"
 gem "andand"
 gem "pg"
