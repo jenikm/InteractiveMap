@@ -38,6 +38,13 @@ module GenerateData
       order.save!
     end
   end
+
+  def self.assign_random_tracking_numbers
+    tracking_numbers = IO.readlines(File.join(RAILS_ROOT, "lib", "tracking_numbers.txt")).map(&:strip)
+    Shipment.all.each do |shipment|
+      shipment.update_attribute :tracking_number, tracking_numbers[(rand * tracking_numbers.length).to_i]
+    end
+  end
 end
 
 

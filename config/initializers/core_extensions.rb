@@ -1,4 +1,10 @@
+
+require 'open-uri'
 class ActiveRecord::Base
+  def log(text)
+    @log ||= Logger.new(File.join(RAILS_ROOT, "log", "debug.log"))
+    @log.info text
+  end
   def self.first(*args)
     find :first, *args
   end
@@ -19,6 +25,7 @@ class ActiveRecord::Base
     result = all :offset => rand(count), :limit => limit
     result.length == 1 ? result.pop : result
   end
+
 end
 
 module ActionView

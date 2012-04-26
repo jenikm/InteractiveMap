@@ -2,8 +2,66 @@
 // This file is automatically included by javascript_include_tag :defaults
 
 document.observe("dom:loaded", function(){
+  br_main_office_location = new google.maps.LatLng(br_office_infos.geo_location.lat, br_office_infos.geo_location.lng);
   initialize_tracking_map();
+  show_icons();
 });
+var global_z_index = 0;
+
+function Label(opt_options) {
+ // Initialization
+ this.setValues(opt_options);
+  this.count = 1;
+ // Label specific
+ var span = this.span_ = document.createElement('span');
+ span.style.cssText = 'z-index:100000000;position: relative; left: -50%; top: -8px; ' +
+                      'white-space: nowrap; border: 1px solid gray; ' +
+                      'padding: 2px; background-color: white; font-weight:bold;';
+
+ var div = this.div_ = document.createElement('div');
+ div.appendChild(span);
+ div.style.cssText = 'position: absolute; display: none;';
+};
+Label.prototype = new google.maps.OverlayView;
+
+// Implement onAdd
+Label.prototype.onAdd = function() {
+ var pane = this.getPanes().overlayLayer;
+ pane.appendChild(this.div_);
+
+ // Ensures the label is redrawn if the text or position is changed.
+ var me = this;
+ this.listeners_ = [
+   google.maps.event.addListener(this, 'position_changed',
+       function() { me.draw(); }),
+   google.maps.event.addListener(this, 'text_changed',
+       function() { me.draw(); })
+ ];
+};
+
+// Implement onRemove
+Label.prototype.onRemove = function() {
+ this.div_.parentNode.removeChild(this.div_);
+
+ // Label is removed from the map, stop updating its position/text.
+ for (var i = 0, I = this.listeners_.length; i < I; ++i) {
+   google.maps.event.removeListener(this.listeners_[i]);
+ }
+};
+
+// Implement draw
+Label.prototype.draw = function() {
+ var projection = this.getProjection();
+ var position = projection.fromLatLngToDivPixel(this.get('position'));
+ var div = this.div_;
+ div.style.zIndex = 100000;
+ div.style.left = position.x + 'px';
+ div.style.top = position.y - 60 + 'px';
+ div.style.display = 'block';
+
+ this.span_.innerHTML = this.count;
+};
+
 
 String.prototype.hashCode = function(){
   var hash = 0;
@@ -17,95 +75,9 @@ String.prototype.hashCode = function(){
 }
 
 function hash_color(title){
-  return (Math.abs(title.hashCode() % (1<<24)))
+  return (Math.abs(title.hashCode() % (1<<24))).toString(16);
 }
 
-function setup_multiple_selection(options){
-    var select_multiple_two = new Control.SelectMultiple(options.value_id,options.options_id,{  
-        checkboxSelector: 'table tr td input[type=checkbox]',  
-        nameSelector: 'table tr td.name',  
-        afterChange: function(){  
-            if(select_multiple_two && select_multiple_two.setSelectedRows)  
-                select_multiple_two.setSelectedRows();  
-        }  
-    });  
-      
-    //adds and removes highlighting from table rows  
-    select_multiple_two.setSelectedRows = function(){  
-        this.checkboxes.each(function(checkbox){  
-            var tr = $(checkbox.parentNode.parentNode);  
-            tr.removeClassName('selected');  
-            if(checkbox.checked)  
-                tr.addClassName('selected');  
-        });  
-    }.bind(select_multiple_two);  
-    select_multiple_two.checkboxes.each(function(checkbox){  
-        $(checkbox).observe('click',select_multiple_two.setSelectedRows);  
-        $(checkbox).observe('click',function(){
-          $(checkbox).value.split(",").each(function(elem){
-            if($(checkbox).checked){
-              item_list.add_to_list(elem);
-            }
-            else
-              item_list.remove_from_list(elem);
-            }.bind(this))
-        }.bind(this));  
-    });  
-    select_multiple_two.setSelectedRows();  
-      
-    //link open and closing  
-    $(options.options_id + "_toggle").observe('click',function(event){  
-        if(!this.container.visible()){
-          new Effect.BlindDown(this.container,{  
-              duration: 0.3,
-              afterFinish:function(){$(this.container).style.overflow='auto'}.bind(this)
-          });  
-        }
-        else{
-          new Effect.BlindUp(this.container,{  
-              duration: 0.3  
-          });
-        }
-        Event.stop(event);  
-        return false;  
-    }.bindAsEventListener(select_multiple_two));  
-  }
-
-var ItemList = Class.create({
-  initialize: function(content_id, database_id){
-    this.item_ids = []
-    this.draggables = {};
-    this.content_id = content_id;
-    this.outer_content = $(content_id);
-    this.database = $(database_id);
-  },
-  get_html_id: function(item_id){
-    return 'picked_item_' + item_id;
-  },
-  add_to_list: function(item_id){
-    if(!this.item_ids.include(item_id)){
-       
-      this.item_ids.push(item_id);
-      var data_set_item = this.database.select("div#data_set_item_" + item_id).first();
-      var item_picture = new Element("img", {'src': data_set_item.readAttribute("data-image_url"), 'onerror': "this.src = '/images/thumb_no_image.gif'"});
-      var item_title = new Element("div").update(data_set_item.readAttribute("data-title"));
-      var item_elem = new Element("div", 
-        {'class': 'item', 'id': this.get_html_id(item_id), style: 'display:none;', 'data-db_id': item_id});
-      item_elem.appendChild(item_picture)
-      item_elem.appendChild(item_title);
-      this.outer_content.appendChild(item_elem);
-      this.draggables[item_id] = new Draggable(this.get_html_id(item_id));
-      Effect.Grow(this.get_html_id(item_id)); 
-    }
-  },
-  remove_from_list: function(item_id){
-    if(this.item_ids.include(item_id)){
-      this.item_ids = this.item_ids.without(item_id);
-      this.draggables[item_id].destroy();
-      Effect.Shrink(this.get_html_id(item_id), { afterFinish: function(){$(this.get_html_id(item_id)).remove()}.bind(this) });
-    }
-  }
-})
 var map;
 var geocoder;
 var br_main_office_location;
@@ -116,6 +88,10 @@ function seller_shipped_item(item_struct){
 
 function arrived_from_seller(item_struct){
   return item_struct.status > 2
+}
+
+function shipped_to_customer(item_struct){
+  return item_struct.status > 3; 
 }
 
 function initialize_tracking_map(){
@@ -167,7 +143,6 @@ function initialize_tracking_map(){
 
 
   //BAYRU OFFICE COORDINATES
-  br_main_office_location = new google.maps.LatLng(42.019078, -87.714531);
   //br_main_office_location = new google.maps.LatLng(32,-101);
   var tracking_style_map = new google.maps.StyledMapType(stylers,
       {name: "BayRu Style Map"});
@@ -182,22 +157,182 @@ function initialize_tracking_map(){
   map = new google.maps.Map($("map_canvas"), myOptions);
   map.mapTypes.set('interactive_styled_map', tracking_style_map);
   map.setMapTypeId('interactive_styled_map');
+  icon_ops.map = map;
 }
 
-//TODO must use the midpoint formula for geographical points
-function midway_location(l1, l2){
-  return new google.maps.LatLng( l1.lat() + (l2.lat() - l1.lat()) / 2, l1.lng() + (l2.lng() - l1.lng()) / 2);
+var icon_ops = { map: null, position: null, animation: google.maps.Animation.DROP, zIndex: 0 }
+var draw_office_icon = false;
+
+function show_icons(){
+  //Draw item icons
+  order_item_infos.each(function(item_struct){
+    add_item_icons_to_map(item_struct);
+  });
+  //Draw office icon
+  if(draw_office_icon){
+    draw_office();
+  }
+  shipments.each(function(shipment){
+    draw_shipments(shipment);
+  });
+}
+
+function draw_shipments(shipment){
+  var prev_geo_location;
+  shipment.shipment_tracking_logs.each(function(stl, i){
+    var color = shipment.shipment_tracking_logs.length - 1 == i ? "yellow" : "gray";
+    icon_ops.icon = new google.maps.MarkerImage("/images/interactive_map_icons/plane_" + color + ".png", null, null, null, new google.maps.Size(32,40) );
+    if(stl.lat && stl.lng){
+      stl.geo_location = new google.maps.LatLng(stl.lat, stl.lng);
+      icon_ops.position = stl.geo_location
+      var shipment_marker = new google.maps.Marker(Object.clone(icon_ops));  
+      var iwc = "<table><tr><th>Count</th><th>Title</th><th>Image</th><th>Status</th></tr>\n"
+          shipment.order_items.each(function(oi, i){
+            iwc += "<tr><td>" + (i + 1) + "</td><td>" + oi.title + "</td><td><img onerror='this.src=\"/images/thumb_no_image.gif\"' src='" + oi.image_url + "' width=40</></td><td>" + status_names[oi.status] + "</td></tr>\n"
+          }).join("\n") + "</table>";
+        var info_window = new google.maps.InfoWindow({
+            content: iwc
+          });
+
+          google.maps.event.addListener(shipment_marker, 'click', function() {
+            info_window.open(map, shipment_marker);
+          });
+
+      
+      if(prev_geo_location && i > 0){
+        draw_line(shipment.tracking_number, [prev_geo_location, stl.geo_location], 4);
+      }
+      prev_geo_location = stl.geo_location;
+    }
+  });
+}
+
+function draw_office(){
+  icon_ops.position = br_main_office_location;
+  icon_ops.zIndex++;
+  var color = br_office_infos.order_items.length > 0 ? "yellow" : "gray";
+  icon_ops.icon = new google.maps.MarkerImage("/images/interactive_map_icons/br_office_" + color + ".png", null, null, null, new google.maps.Size(32,40) );
+  var office_marker = new google.maps.Marker(Object.clone(icon_ops));
+
+  var label = document.createElement("div");
+  label.style.cssText = "border: 1px solid black;; padding: 5px;";
+  label.innerHTML = br_office_infos.order_items.length;
+
+  var label_options = { content: label,
+                    maxWidth: 0,
+                    pixelOffset: new google.maps.Size(-15, -70),
+                    zIndex: null,
+                    boxStyle: { opacity: 1, fontWeight: 'bold', backgroundColor: '#FFFFFF' }, 
+                    closeBoxURL: "" };
+  var ib = new InfoBox(label_options);
+  ib.open(map, office_marker);
+  var iwc = "<table><tr><th>Count</th><th>Title</th><th>Image</th><th>Status</th></tr>\n"
+    br_office_infos.order_items.each(function(oi, i){
+      iwc += "<tr><td>" + (i + 1) + "</td><td>" + oi.title + "</td><td><img onerror='this.src=\"/images/thumb_no_image.gif\"' src='" + oi.image_url + "' width=40</></td><td>" + status_names[oi.status] + "</td></tr>\n"
+    }).join("\n") + "</table>";
+  var info_window = new google.maps.InfoWindow({
+      content: iwc
+    });
+
+    google.maps.event.addListener(office_marker, 'click', function() {
+      info_window.open(map,office_marker);
+    });
+}
+
+function draw_line(color_seed, points, weight){
+  if(!weight)
+    weight = 3;
+  var path = new google.maps.Polyline({
+    path: points,
+      strokeColor: hash_color(color_seed),
+      strokeOpacity: 1,
+      strokeWeight: weight
+    });
+  path.setMap(map);
 }
 
 
+function add_item_icons_to_map(item_info){
+  //Make midway a bit random 
+  with(item_info){
+    var info_window_content = 
+        "<table class='info_window'>" +
+          "<tr>" +
+            "<th>Title</th><td>_TITLE_</td>" +
+          "</tr>" +
+          "<tr>" +
+            "<th>Last Status</th><td>_STATUS_</td>" +
+          "</tr>" +
+          "<tr>" +
+            "<td>" +
+              "<img onerror='this.src=\"/images/thumb_no_image.gif\"' src='_IMAGE_URL_' height=40/>" +
+            "</td>" +
+          "</tr>" +
+      "</table>";
+
+    var local_w_c = info_window_content.gsub("_TITLE_", order_item.title);
+    local_w_c = local_w_c.gsub("_STATUS_", status_names[order_item.status]);
+    if(order_item.image_url)
+      local_w_c = local_w_c.gsub("_IMAGE_URL_", order_item.image_url);
+
+    if(geo_locations.seller){
+      var color = order_item.status == 1 ? "yellow" : "gray";
+      icon_ops.icon = new google.maps.MarkerImage("/images/interactive_map_icons/item_" + color + ".png", null, null, null, new google.maps.Size(32,40) );
+      var offset = (order_item.title.hashCode() % 10) * 0.1;
+      geo_locations.seller.lat += offset;
+      geo_locations.seller.geo_location = new google.maps.LatLng(geo_locations.seller.lat, geo_locations.seller.lng);
+      icon_ops.position = geo_locations.seller.geo_location;
+      icon_ops.zIndex++;
+      var l_icon_ops = Object.clone(icon_ops);
+      l_icon_ops.title = "Title: " +order_item.title;
+      var seller_marker = new google.maps.Marker(l_icon_ops);
+
+      var info_window = new google.maps.InfoWindow({
+        content: local_w_c
+      });
+      google.maps.event.addListener(seller_marker, 'click', function() {
+        info_window.open(map,seller_marker);
+      });
+    }
+    if(geo_locations.midway){
+      //To spread out items that are dense
+      //Draw stuff on the map
+      geo_locations.midway.geo_location = new google.maps.LatLng(geo_locations.midway.lat, geo_locations.midway.lng);
+      
+      var color = order_item.status == 2 ? "yellow" : "gray";
+      icon_ops.icon = new google.maps.MarkerImage("/images/interactive_map_icons/truck_" + color + ".png", null, null, null, new google.maps.Size(32,40) );
+      icon_ops.position = geo_locations.midway.geo_location;
+      icon_ops.zIndex++;
+
+      var l_icon_ops = Object.clone(icon_ops);
+      l_icon_ops.title = "Title: " + order_item.title;
+      var midway_maker = new google.maps.Marker(l_icon_ops);
+      //draw arrow to midway
+      draw_line(order_item.title, [geo_locations.seller.geo_location, geo_locations.midway.geo_location]);
 
 
+      var info_window = new google.maps.InfoWindow({
+        content: local_w_c
+      });
 
-function add_to_map(elem){
-  new Ajax.Request("/order_items/" + elem.getAttribute("data-db_id") + ".json", {onComplete: collect_geocodes_and_show, method: "get" })
-  var address_structs = [];
-  function collect_geocodes_and_show(response){
-    var item_struct = response.responseJSON;
+      google.maps.event.addListener(midway_maker, 'click', function() {
+        info_window.open(map,midway_maker);
+      });
+      
+    }
+    if(order_item.status >= 3){
+      draw_office_icon = true;
+      //draw arrow to office
+      draw_line(order_item.title, [geo_locations.midway.geo_location, br_main_office_location]);
+    }
+  }
+}
+
+
+/*
+  paths.push(address_structs);
+  collect_geocodes_and_show(item_struct)
+  function collect_geocodes_and_show(item_struct){
 
     function resolve_geocode(_callback){
       geocoder.geocode( { 'address': address_struct.address}, function(results, status) {
@@ -205,27 +340,29 @@ function add_to_map(elem){
         var loc = results[0].geometry.location;
         //To spread out items that are dense
         var offset = (item_struct.title.hashCode() % 10) * 0.1;
-        address_struct.location = new google.maps.LatLng(loc.lat() + offset, loc.lng());
+        address_struct.location = new google.maps.LatLng(item_struct.seller_lat + offset, item_struct.seller_lng);
         //address_struct.location = results[0].geometry.location;
   
         _callback();
       } else {
-        alert("Geocode was not successful for the following reason: " + status);
-      }
+        alert("Geocode was not successful for the following reason: " + status); }
       })
     }
 
     function add_midway_office_or_further(){
-      address_structs.push( {location: midway_location(address_structs.last().location, br_main_office_location), type: "MIDWAY_SELLER" });
+      var prev_struct = Object.clone(address_structs.last());
+      prev_struct.location = midway_location(prev_struct.location, br_main_office_location);
+      prev_struct.type = "MIDWAY_SELLER";
+      address_structs.push( prev_struct );
       if(arrived_from_seller(item_struct)){
-       address_structs.push( {location: br_main_office_location, type: "BR_MAIN_OFFICE"} );
+        address_structs.push( {location: br_main_office_location, type: "BR_MAIN_OFFICE", db_id: 0, sequence: 0} );
       }
       add_icons();
     }
 
     //EXTRACT SELLER ADDRESS
     if(!item_struct.seller_country.empty()){
-      var address_struct = {address: item_struct.seller_country, type: "SELLER", location: null};
+      var address_struct = {address: item_struct.seller_country, type: "SELLER", location: null, db_id: id, sequence: id};
       if(item_struct.seller_country == "US"){
         if(item_struct.seller_zip_code.search(/^\d+$/) != -1){
           address_struct.address = item_struct.seller_zip_code + ", " + address_struct.address;
@@ -240,14 +377,48 @@ function add_to_map(elem){
         var icon_ops = {
             map: map,
             position: address_struct.location,
-            animation: google.maps.Animation.DROP
+            animation: google.maps.Animation.DROP,
+            zIndex: global_z_index++
           }
 
         if(address_struct.type == "BR_MAIN_OFFICE"){ 
-          //icon_ops.
+          with(google.maps){
+            icon_ops.icon = new MarkerImage("/images/shield.png", null, null, null, new Size(32,40) );
+            icon_ops.zIndex = 10000;
+          }
         }
+
+        points[p_id(address_struct)] = points[p_id(address_struct)] || {};
         window.setTimeout(function(){
-          var marker = new google.maps.Marker(icon_ops);
+          var point = points[p_id(address_struct)];
+            if(!point.marker)
+              point.marker = new google.maps.Marker(icon_ops);
+            
+            if(address_struct.type == "BR_MAIN_OFFICE"){
+              if(point.label_content){
+                point.label_content.innerHTML = find_nodes_by_type_and_sequence( address_struct.type, 0 ).length;
+              }
+              else{
+                point.label_content = document.createElement("div");
+                point.label_content.style.cssText = "border: 1px solid black;; padding: 5px;";
+                point.label_content.innerHTML = find_nodes_by_type_and_sequence( address_struct.type, 0 ).length;
+
+                var myOptions = {
+                  content: point.label_content
+                  ,maxWidth: 0
+                  ,pixelOffset: new google.maps.Size(-15, -70)
+                  ,zIndex: null
+                  ,boxStyle: { 
+                  opacity: 1,
+                  fontWeight: 'bold',
+                  backgroundColor: '#FFFFFF'
+                 },
+                closeBoxURL: ""
+              };
+              var ib = new InfoBox(myOptions);
+              ib.open(map, point.marker);
+              }
+            }
           }, 200 * i
         )
 
@@ -264,24 +435,17 @@ function add_to_map(elem){
               angle += 180;
 
             angle %= 360;
-            var a4 = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 1);
+            if(!points[p_id(address_struct)].arrow || address_struct.type == "BR_MAIN_OFFICE")
+              points[p_id(address_struct)].arrow = new ArrowOverlay(map, address_struct.location, angle, item_path_color(item_struct), 1);
           }
         }
       )
       var path_points = address_structs.map(function(address_struct){
         return address_struct.location;
       })
-      var path = new google.maps.Polyline({
-        path: path_points,
-        strokeColor: item_path_color(item_struct),
-        strokeOpacity: 1,
-        strokeWeight: 3
-      });
-
-      path.setMap(map);
+      
     }
   }
-  function item_path_color(item_struct){
-    return hash_color(item_struct.title).toString(16);
-  }
+  
 }
+*/

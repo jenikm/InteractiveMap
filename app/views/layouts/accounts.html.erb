@@ -10,8 +10,8 @@
   <%= javascript_include_tag "v3arrows.js" %>
   <%= javascript_tag "GOOGLE_API_KEY = '#{GOOGLE_API_KEY}';" -%>
   <%= javascript_include_tag :all %>
-  <%= javascript_include_tag "livepipe/livepipe" %>
-  <%= javascript_include_tag *Dir.foreach("#{RAILS_ROOT}/public/javascripts/livepipe").select{|x| x =~ /\.js$/}.map{|x| "livepipe/#{x}"}.sort %>
+  <!-- javascript_include_tag "livepipe/livepipe" -->
+  <!-- javascript_include_tag *Dir.foreach("#{RAILS_ROOT}/public/javascripts/livepipe").select{|x| x =~ /\.js$/}.map{|x| "livepipe/#{x}"}.sort -->
 
 </head>
 <body>

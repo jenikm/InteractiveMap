@@ -9,11 +9,23 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 7) do
+ActiveRecord::Schema.define(:version => 12) do
 
   create_table "accounts", :force => true do |t|
     t.datetime "created_at"
     t.datetime "updated_at"
+  end
+
+  create_table "geo_locations", :force => true do |t|
+    t.decimal  "lat",          :precision => 18, :scale => 8
+    t.decimal  "lng",          :precision => 18, :scale => 8
+    t.string   "postal_code"
+    t.string   "country_name"
+    t.string   "city"
+    t.boolean  "unresolvable",                                :default => false, :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.string   "airport_code"
   end
 
   create_table "order_item_tracking_numbers", :force => true do |t|
@@ -34,6 +46,9 @@ ActiveRecord::Schema.define(:version => 7) do
     t.string   "seller_country"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "seller_lat"
+    t.integer  "seller_lng"
+    t.integer  "seller_geo_location_id"
   end
 
   create_table "order_items_shipments", :id => false, :force => true do |t|
@@ -45,6 +60,20 @@ ActiveRecord::Schema.define(:version => 7) do
     t.integer  "status"
     t.datetime "created_at"
     t.datetime "updated_at"
+  end
+
+  create_table "shipment_tracking_logs", :force => true do |t|
+    t.integer  "shipment_id"
+    t.text     "address_description_blob"
+    t.string   "postal_code"
+    t.text     "status_name"
+    t.decimal  "lat",                      :precision => 14, :scale => 8
+    t.decimal  "lng",                      :precision => 14, :scale => 8
+    t.datetime "occurred_at"
+    t.boolean  "geocode_failed",                                          :default => false, :null => false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "shipment_tracking_log_id"
   end
 
   create_table "shipments", :force => true do |t|

@@ -11,6 +11,33 @@ class AccountsController < ApplicationController
   end
 
   def tracking_map
+    #THIS WILL BE REPLACED WITH customer.orders.map(&:order_items).flatten with filters when integrated
+    #@order_items = OrderItem.find(:all, :limit => 1, :conditions => "shipments.id IS NOT NULL", :order => "order_items.id desc", :include => :shipments)
+    @order_items = OrderItem.find(:all, :limit => 20, :conditions => "status in (1,2,3,4,5)", :order => "order_items.id desc", :include => :shipments)
+    
+    ActiveRecord::Base.transaction do
+      @order_items.each do | item |
+        if item.geocode_seller
+          item.save!
+        end
+      end
+    end
+    @shipments = @order_items.map(&:shipments).flatten
+    Shipment.transaction do
+      @shipments.each do |shipment|
+        #TODO add check to prevent checking more often than 5 min interval
+        shipment.build_shipment_tracking_logs
+        shipment.save!
+      end
+    end
+
+    @shipments = @shipments.map do |shipment|
+      shipment.attributes.merge({:order_items => shipment.order_items.map(&:attributes), :shipment_tracking_logs => shipment.shipment_tracking_logs.map{|stl| stl.geo_location ? stl.attributes.merge(stl.geo_location.attributes) : stl.attributes}})
+    end
+
+    @order_item_infos = @order_items.map{|oi| {:order_item => oi, :geo_locations => oi.get_geolocation_path}}
+    @br_office_infos = {:geo_location => OrderItem.br_office_geolocation, :order_items => @order_items.select{|oi| oi.status == 3}}
+    @status_names = OrderItem::VALID_STATUSES.map{|s| OrderItem.status_name(s)}.unshift("Not Purchased from seller")
   end
 
   # GET /accounts/1
