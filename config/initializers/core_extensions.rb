@@ -1,4 +1,3 @@
-
 require 'open-uri'
 class ActiveRecord::Base
   def log(text)
